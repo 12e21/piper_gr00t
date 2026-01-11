@@ -4,6 +4,9 @@ import os
 import cv2
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from tqdm import tqdm
+import typer
+from pathlib import Path
+from typing import Optional, List
 
 # feature definition for bi-arm piper data
 BI_PIPER_FEATURES = {
@@ -122,15 +125,27 @@ def process_data(dataset: LeRobotDataset, episode_group: h5py.Group, episode_nam
     return True
             
 
-def convert_hdf5_to_lerobot():
-    repo_id = "12e21/bi_piper_subset"
-    robot_type = "bi_piper"
-    fps = 30
-    hdf5_root = "./data"
-    hdf5_files = ["0000.hdf5", "0001.hdf5"]
-    push_to_hub = False
-
-    hdf5_files = [os.path.join(hdf5_root, file) for file in hdf5_files]
+def convert_hdf5_to_lerobot(
+    repo_id: str = typer.Option("12e21/bi_piper_subset", help="HuggingFace repository ID"),
+    robot_type: str = typer.Option("bi_piper", help="Robot type"),
+    fps: int = typer.Option(30, help="Frames per second"),
+    hdf5_root: str = typer.Option("./data", help="Root directory for HDF5 files"),
+    hdf5_files: Optional[List[str]] = typer.Option(None, help="HDF5 files to process (can be specified multiple times)"),
+    all_files: bool = typer.Option(False, "--all", help="Process all HDF5 files in the root directory"),
+    push_to_hub: bool = typer.Option(False, "--push", help="Push dataset to HuggingFace Hub"),
+) -> None:
+    """
+    Convert HDF5 files to LeRobot dataset format.
+    """
+    # Handle file selection
+    if all_files:
+        hdf5_files = sorted([str(f) for f in Path(hdf5_root).glob("*.hdf5")])
+        typer.echo(f"Found {len(hdf5_files)} HDF5 files in {hdf5_root}")
+    elif hdf5_files:
+        hdf5_files = [os.path.join(hdf5_root, file) for file in hdf5_files]
+    else:
+        typer.echo("Error: Please specify --hdf5-files or use --all to process all files", err=True)
+        raise typer.Exit(1)
     dataset = LeRobotDataset.create(
         repo_id=repo_id,
         fps=fps,
@@ -149,4 +164,4 @@ def convert_hdf5_to_lerobot():
         dataset.push_to_hub()
 
 if __name__ == "__main__":
-    convert_hdf5_to_lerobot()
+    typer.run(convert_hdf5_to_lerobot)
