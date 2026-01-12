@@ -30,6 +30,47 @@ python read_hdf5.py <your_file.h5> --interactive
 - `pwd` - 显示当前位置
 - `exit` - 退出
 
+## HDF5 文件拆分工具
+
+`split_hdf5.py` 用于将包含多个 group 的 HDF5 文件拆分成多个单独的 HDF5 文件。
+
+### 使用方法
+
+```bash
+# 拆分所有 groups
+python split_hdf5.py split-hdf5-file --input data.hdf5 --output ./split_output
+
+# 拆分指定的 groups
+python split_hdf5.py split-hdf5-file --input data.hdf5 --groups episode_0 --groups episode_1
+
+# 添加文件名前缀
+python split_hdf5.py split-hdf5-file --input data.hdf5 --prefix "piper_"
+
+# 覆盖已存在的文件
+python split_hdf5.py split-hdf5-file --input data.hdf5 --overwrite
+
+# 列出文件中的所有 groups
+python split_hdf5.py list-hdf5-groups --input data.hdf5
+```
+
+### 参数说明
+
+#### split-hdf5-file 子命令
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--input`, `-i` | 输入的 HDF5 文件路径（必需） | - |
+| `--output`, `-o` | 输出目录 | `./split_output` |
+| `--prefix` | 输出文件名前缀 | 空 |
+| `--groups` | 指定要拆分的 group 名称（可多次使用） | 拆分所有 |
+| `--overwrite` | 覆盖已存在的文件 | `false` |
+
+#### list-hdf5-groups 子命令
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--input`, `-i` | 输入的 HDF5 文件路径（必需） | - |
+
 ## HDF5 转 LeRobot 数据集
 
 `hdf2lerobotv21.py` 用于将双臂 Piper 机器人的 HDF5 数据转换为 LeRobot 数据集格式。
