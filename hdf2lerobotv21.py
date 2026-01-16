@@ -119,8 +119,9 @@ def process_data(dataset: LeRobotDataset, episode_group: h5py.Group, episode_nam
             "observation.images.left_wrist": image_left,
             "observation.images.mid": image_mid,
             "observation.images.right_wrist": image_right,
+            "task": episode_instruction,
         }
-        dataset.add_frame(frame=frame, task=episode_instruction)
+        dataset.add_frame(frame=frame)
 
     return True
             
