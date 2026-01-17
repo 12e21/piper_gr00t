@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 将目录中的多个 HDF5 文件重新划分成包含指定数量 episodes 的 HDF5 文件
 
