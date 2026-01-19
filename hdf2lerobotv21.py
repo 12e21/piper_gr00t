@@ -108,10 +108,11 @@ def process_data(dataset: LeRobotDataset, episode_group: h5py.Group, episode_nam
     image_right_bytes = episode_group["image_right"][()]
     
 
+    decode = lambda x: x if isinstance(x, np.ndarray) and x.ndim == 3 else cv2.imdecode(np.frombuffer(x, np.uint8), cv2.IMREAD_COLOR)
     for frame_index in range(episode_frame_length):
-        image_left = cv2.imdecode(np.frombuffer(image_left_bytes[frame_index], np.uint8), cv2.IMREAD_COLOR)
-        image_mid = cv2.imdecode(np.frombuffer(image_mid_bytes[frame_index], np.uint8), cv2.IMREAD_COLOR)
-        image_right = cv2.imdecode(np.frombuffer(image_right_bytes[frame_index], np.uint8), cv2.IMREAD_COLOR)
+        image_left = decode(image_left_bytes[frame_index])
+        image_mid = decode(image_mid_bytes[frame_index])
+        image_right = decode(image_right_bytes[frame_index])
 
         frame = {
             "action": action[frame_index],
