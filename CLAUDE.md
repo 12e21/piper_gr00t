@@ -4,3 +4,6 @@
 
 ## Env
 - use conda and uv, you can directly use python to run a script
+
+## doc
+- doc should keep concise and restrained
