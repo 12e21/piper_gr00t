@@ -13,10 +13,11 @@ uv pip install lerobot==0.4.2 h5py opencv-python ipdb typer tqdm numpy datatrove
 ## 2. 使用脚本转换hdf5文件
 
 ```bash
-python hdf2lerobotv21.py --all \ # 转换目录下所有hdf5文件
-  --repo-id "your/repo" \ # 仓库id
-  --hdf5-root "./data" \ # 存放hdf5文件的目录
-  --push # 上传到huggingface
+# 转换目录下所有hdf5文件
+python hdf2lerobotv21.py --all \
+  --repo-id "your/repo" \
+  --hdf5-root "./data" \
+  --push  # 上传到huggingface
 ```
 脚本支持以下数据格式：
 
@@ -96,6 +97,15 @@ python convert_parallel/lerobot_v30_to_v21.py --repo-id "your/repo"
 | `convert_hdf5_shards.py` | 多进程并行转换为 LeRobot Dataset shards |
 | `aggregate_hdf5_shards.py` | 聚合 shards 为完整数据集 |
 
+## 性能测试
+
+测试数据：10 个 HDF5 文件（100 episodes）
+
+| 步骤 | 配置 | 用时 |
+|------|------|------|
+| Repack 10×10 → 2×50 episodes | - | 12 min |
+| Convert shards (50 workers) | 55核CPU, 500GB内存 | ~9 min |
+| Aggregate shards | 55核CPU, 500GB内存 | ~1 min |
 ---
 
 # 详细文档
