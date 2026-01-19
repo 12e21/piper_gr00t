@@ -5,17 +5,19 @@
 git clone https://github.com/12e21/piper_gr00t.git
 conda create -n hdf2lerobot python=3.10
 conda activate hdf2lerobot
+conda install ffmpeg=7 -c conda-forge
 pip install uv
-uv pip install lerobot==0.3.3 h5py opencv-python ipdb typer tqdm numpy
+uv pip install lerobot==0.4.2 h5py opencv-python ipdb typer tqdm numpy datatrove
 ```
 
 ## 2. 使用脚本转换hdf5文件
 
 ```bash
-python hdf2lerobotv21.py --all \ # 转换目录下所有hdf5文件
-  --repo-id "your/repo" \ # 仓库id
-  --hdf5-root "./data" \ # 存放hdf5文件的目录
-  --push # 上传到huggingface
+# 转换目录下所有hdf5文件
+python hdf2lerobotv21.py --all \
+  --repo-id "your/repo" \
+  --hdf5-root "./data" \
+  --push  # 上传到huggingface
 ```
 脚本支持以下数据格式：
 
@@ -53,76 +55,63 @@ bash config_for_gr00tn16/finetune_bi_piper.sh
 1. hdf5 转换 Lerobot Dataset转换成功，速度不是很快
 2. 使用两个episode转换得到的数据集微调GR00T N1.6，使用两张A100 80G，Loss正常下降
 
-# HDF5 Tools使用
-
-## read_hdf5.py - HDF5 文件查看工具
-
-快速查看 HDF5 文件的数据结构、属性和数据内容。
-
-### 基本用法
-```bash
-# 基本查看文件结构
-python hdf5_tools/read_hdf5.py data.h5
-
-# 显示属性和数据预览
-python hdf5_tools/read_hdf5.py data.h5 --attrs --preview
-
-# 限制显示层级（适用于深层嵌套结构）
-python hdf5_tools/read_hdf5.py data.h5 --max-level 2
-```
-
-### 交互式模式
-```bash
-python hdf5_tools/read_hdf5.py data.h5 --interactive
-```
-
-交互模式可用命令：
-- `help` - 显示帮助
-- `cd <name>` - 进入组（使用 `..` 返回上级）
-- `ls` - 列出当前组内容
-- `info <name>` - 显示数据集详细信息
-- `preview <name>` - 预览数据集数据
-- `pwd` - 显示当前位置
-- `exit` 或 `quit` - 退出
-
 ---
 
-## split_hdf5.py - HDF5 文件拆分工具
+# 并行转换数据集
 
-将包含多个 group 的 HDF5 文件拆分成多个单独的文件，每个 group 保存为独立的 HDF5 文件。
+适用于需要转换大量 HDF5 文件的场景，通过多进程并行处理提高转换速度。
 
-### 列出文件中的 groups
+## 转换流程
+
 ```bash
-python hdf5_tools/split_hdf5.py list-hdf5-groups --input data.h5
+# Step 1: 重新打包 HDF5 文件（可选）
+# 目的：保证 HDF5 文件数量大于并行 worker 数量
+python convert_parallel/repack_hdf5.py repack \
+  --input ./data \
+  --output ./repacked \
+  --episodes-per-file 50
+
+# Step 2: 并行转换为 LeRobot Dataset shards
+python convert_parallel/convert_hdf5_shards.py \
+  --hdf5-root ./repacked \
+  --all \
+  --repo-id "your/repo" \
+  --workers 100
+
+# Step 3: 聚合 shards 为完整数据集
+# 注意：并行转换会产生大量数据集碎片，aggregate 不会删除这些碎片
+python convert_parallel/aggregate_hdf5_shards.py \
+  --repo-id "your/repo" \
+  --num-shards 100
+
+# Step 4: 转换数据集版本（可选）
+# 如果需要将 LeRobot v3.0 数据集转换为 v2.1 格式
+python convert_parallel/lerobot_v30_to_v21.py --repo-id "your/repo"
 ```
 
-### 拆分文件
-```bash
-# 拆分所有 groups
-python hdf5_tools/split_hdf5.py split-hdf5-file \
-  --input data.h5 \
-  --output ./split_output
+## 工具说明
 
-# 拆分指定的 groups
-python hdf5_tools/split_hdf5.py split-hdf5-file \
-  --input data.h5 \
-  --output ./split_output \
-  --groups episode_0 episode_1
+| 工具 | 用途 |
+|------|------|
+| `repack_hdf5.py` | 重新打包 HDF5 文件，便于并行处理 |
+| `convert_hdf5_shards.py` | 多进程并行转换为 LeRobot Dataset shards |
+| `aggregate_hdf5_shards.py` | 聚合 shards 为完整数据集 |
 
-# 添加文件名前缀
-python hdf5_tools/split_hdf5.py split-hdf5-file \
-  --input data.h5 \
-  --output ./split_output \
-  --prefix "piper_"
+## 性能测试
 
-# 覆盖已存在的文件
-python hdf5_tools/split_hdf5.py split-hdf5-file \
-  --input data.h5 \
-  --output ./split_output \
-  --overwrite
-```
+测试数据：10 个 HDF5 文件（100 episodes）
 
-### 短参数形式
-```bash
-python hdf5_tools/split_hdf5.py split-hdf5-file -i data.h5 -o ./split_output
-```
+| 步骤 | 配置 | 用时 |
+|------|------|------|
+| Repack 10×10 → 2×50 episodes | - | 12 min |
+| Convert shards (50 workers) | 55核CPU, 500GB内存 | ~9 min |
+| Aggregate shards | 55核CPU, 500GB内存 | ~1 min |
+---
+
+# 详细文档
+
+- [HDF5 基础工具](doc/hdf5_tools.md) - `read_hdf5.py`、`split_hdf5.py`
+- [HDF5 重新打包工具](doc/repack_hdf5.md) - `repack_hdf5.py`
+- [HDF5 并行转换工具](doc/convert_hdf5_shards.md) - `convert_hdf5_shards.py`
+- [Shards 聚合工具](doc/aggregate_hdf5_shards.md) - `aggregate_hdf5_shards.py`
+- [LeRobot 版本转换工具](doc/lerobot_version_converter.md) - `lerobot_v30_to_v21.py`
