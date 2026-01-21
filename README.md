@@ -7,7 +7,8 @@ conda create -n hdf2lerobot python=3.10
 conda activate hdf2lerobot
 conda install ffmpeg=7 -c conda-forge
 pip install uv
-uv pip install lerobot==0.4.2 h5py opencv-python ipdb typer tqdm numpy datatrove
+uv pip install git+https://github.com/huggingface/lerobot # 请安装lerobot>=0.4.3, 0.4.2版本的aggregate函数存在bug
+uv pip install h5py opencv-python ipdb typer tqdm numpy datatrove
 ```
 
 ## 2. 使用脚本转换hdf5文件
